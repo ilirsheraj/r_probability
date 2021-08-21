@@ -1,0 +1,612 @@
+---
+title: "week1"
+author: "Ilir_Sheraj"
+date: "8/14/2021"
+output: html_document
+---
+
+```{r setup, include=FALSE}
+knitr::opts_chunk$set(echo = TRUE)
+```
+
+# Introduction to Discrete Probability
+
+The probability of an event is the proportion of times the event occurs when we repeat the experiment independently under the same conditions.
+
+**Monte Carlo** simulations model the probability of different outcomes by repeating a random process a large enough number of times that the results are similar to what would be observed if the process were repeated forever.
+
+```{r}
+beads <- rep(c("red", "blue"), times = c(2,3))
+beads
+```
+
+```{r}
+B <- 10000
+events <- replicate(B, sample(beads,1))
+tab <- table(events)
+tab
+```
+
+```{r}
+prop.table(tab)
+```
+
+Sample without replacement
+
+```{r}
+sample(beads, 5)
+```
+
+```{r}
+sample(beads,5)
+```
+
+Sample with replacement
+
+```{r}
+prop <- sample(beads, B, replace = TRUE)
+table(prop)
+```
+
+```{r}
+prop.table(table(prop))
+```
+
+## An important application of the mean() function
+
+```{r}
+beads <- rep(c("red", "blue"), times = c(2,3))
+beads
+```
+
+```{r}
+mean(beads == "blue")
+```
+
+# Assessment
+
+In the edX exercises for this section, we calculated some probabilities by hand. Now we'll calculate those probabilities using R. One ball will be drawn at random from a box containing: 3 cyan balls, 5 magenta balls, and 7 yellow balls. What is the probability that the ball will be cyan?
+
+```{r}
+cyan <- 3
+magenta <- 5
+yellow <- 7
+p = cyan/(cyan + magenta + yellow)
+p
+```
+
+Instead of taking just one draw, consider taking two draws. You take the second draw without returning the first draw to the box. We call this sampling without replacement. What is the probability that the first draw is cyan and that the second draw is not cyan?
+
+```{r}
+p_1 = cyan/(cyan + magenta + yellow)
+# Assign a variable `p_2` as the probability of not choosing a cyan ball on the second draw without replacement.
+p_2 <- 1 - (cyan - 1)/(cyan + magenta + yellow - 1)
+# Calculate the probability that the first draw is cyan and the second draw is not cyan using `p_1` and `p_2`.
+p_1 * p_2
+```
+
+Now repeat the experiment, but this time, after taking the first draw and recording the color, return it back to the box and shake the box. We call this sampling with replacement. What is the probability that the first draw is cyan and that the second draw is not cyan?
+
+```{r}
+cyan <- 3
+magenta <- 5
+yellow <- 7
+# The variable 'p_1' is the probability of choosing a cyan ball from the box on the first draw.
+p_1 <- cyan / (cyan + magenta + yellow)
+#  Assign a variable 'p_2' as the probability of not choosing a cyan ball on the second draw with replacement.
+p_2 <- 1 - p_1
+
+# Calculate the probability that the first draw is cyan and the second draw is not cyan using `p_1` and `p_2`.
+p_1*p_2
+```
+
+# Permutations and Combinations
+
+```{r}
+number <- "Three"
+suit <- "Hearts"
+paste(number, suit)
+```
+
+```{r}
+paste(letters[1:5], as.character(1:5))
+```
+
+Expand grid gives all combinations of two vectors
+
+```{r}
+expand.grid(pants = c("blue", "black"), shirt = c("white", "grey", "plaid"))
+```
+
+Generate a deck of cards in R
+
+```{r}
+suits <- c("Diamonds", "Clubs", "Hearts", "Spades")
+numbers <- c("Ace", "Deuce", "Three", "Four", "Five", "Six", "Seven", "Eight", "Nine", 
+             "Ten", "Jack", "Queen", "King")
+deck <- expand.grid(number = numbers, suit = suits)
+deck <- paste(deck$number, deck$suit)
+```
+
+```{r}
+deck
+```
+
+Probability of drawong a king
+
+```{r}
+king <- paste("King", suits)
+mean(deck %in% king)
+```
+
+```{r}
+library(gtools)
+permutations(5,2)
+```
+
+Five random 7-digit phone numbers
+
+```{r}
+all_phone_numbers <- permutations(10, 7, v = 0:9)
+n <- nrow(all_phone_numbers)
+index <- sample(n, 5)
+all_phone_numbers[index,]
+```
+
+```{r}
+hands <- permutations(52,2, v = deck)
+first_card <- hands[,1]
+second_card <- hands[,2]
+sum(first_card %in% king)
+
+sum(first_card %in% king & second_card %in% king) / sum(first_card %in% king)
+```
+
+Combinations: Order doesn't matter
+
+```{r}
+permutations(3,2)
+```
+
+```{r}
+combinations(3,2)
+```
+
+```{r}
+aces <- paste("Ace", suits)
+facecard <- c("King", "Queen", "Jack", "Ten")
+facecard <- expand.grid(number = facecard, suit = suits)
+facecard <- paste(facecard$number, facecard$suit)
+
+hands <- combinations(52, 2, v=deck) # all possible hands
+
+# probability of a natural 21 given that the ace is listed first in `combinations`
+mean(hands[,1] %in% aces & hands[,2] %in% facecard)
+
+# probability of a natural 21 checking for both ace first and ace second
+mean((hands[,1] %in% aces & hands[,2] %in% facecard)|(hands[,2] %in% aces & hands[,1] %in% facecard))
+```
+
+# Use a montecarlo
+
+```{r}
+hand <- sample(deck, 2)
+hand
+```
+
+```{r}
+B <- 10000
+results <- replicate(B, {
+  hand <- sample(deck, 2)
+  (hand[1] %in% aces & hand[2] %in% facecard) |
+    (hand[2] %in% aces & hand[1] %in% facecard)
+})
+mean(results)
+```
+
+Good approximation to the results obtained by using combination
+
+## The Birthday Problem
+
+What is the chance that at least two people have the same birthday in a random class of students
+
+```{r}
+n <- 50
+bdays <- sample(1:365, n, replace = TRUE)
+any(duplicated(bdays))
+```
+
+```{r}
+n <- 50
+B <- 10000
+results <- replicate(B, {
+  bdays <- sample(1:365, n, replace = TRUE)
+  any(duplicated(bdays))
+})
+mean(results)
+```
+
+```{r}
+compute_prob <- function(n, B = 10000){
+  same_day <- replicate(B, {
+    bdays <- sample(1:365, n, replace = TRUE)
+    any(duplicated(bdays))
+  })
+  mean(same_day)
+}
+n <- seq(1, 60)
+prob <- sapply(n, compute_prob)
+plot(n, prob)
+```
+
+```{r}
+# function for computing exact probability of shared birthdays for any n
+exact_prob <- function(n){
+    prob_unique <- seq(365, 365-n+1)/365   # vector of fractions for mult. rule
+    1 - prod(prob_unique)    # calculate prob of no shared birthdays and subtract from 1
+}
+
+eprob <- sapply(n, exact_prob)
+plot(n, prob)    # plot Monte Carlo results
+lines(n, eprob, col = "red")    # add line for exact prob
+```
+
+```{r}
+B <- 10^seq(1, 5, len = 100)
+compute_prob <- function(B, n = 22){
+	same_day <- replicate(B, {
+    	bdays <- sample(1:365, n, replace = TRUE)
+        any(duplicated(bdays))
+    })
+    mean(same_day)
+}
+
+prob <- sapply(B, compute_prob)
+plot(log10(B), prob, type = "l")
+```
+
+# Assessment
+
+Create a Monte Carlo simulation to confirm your answer to the previous problem by estimating how frequently the Celtics win at least 1 of 4 games. Use B <- 10000 simulations.
+
+```{r}
+simulated_games <- sample(c("lose","win"), 4, replace = TRUE, prob = c(0.6, 0.4))
+B <- 10000
+set.seed(1)
+celtic_wins <- replicate(B, {
+  simulated_games <- sample(c("lose","win"), 4, replace = TRUE, prob = c(0.6, 0.4))
+  any(simulated_games == c("win"))
+})
+mean(celtic_wins)
+```
+
+# The addition rule
+
+Pr(A or B) = Pr(A) + Pr(B) - Pr(A and B)
+
+# Monty Hall Problem
+
+Stick to the door
+```{r}
+B <- 10000
+stick <- replicate(B, {
+	doors <- as.character(1:3)
+	prize <- sample(c("car","goat","goat"))
+	prize_door <- doors[prize == "car"]
+	my_pick  <- sample(doors, 1)
+	show <- sample(doors[!doors %in% c(my_pick, prize_door)],1)
+	stick <- my_pick
+	stick == prize_door
+})
+mean(stick)
+```
+
+Change Door 
+```{r}
+B <- 10000
+switch <- replicate(B, {
+	doors <- as.character(1:3)
+	prize <- sample(c("car","goat","goat"))
+	prize_door <- doors[prize == "car"]
+	my_pick  <- sample(doors, 1)
+	show <- sample(doors[!doors %in% c(my_pick, prize_door)],1)
+	switch <- doors[!doors%in%c(my_pick, show)]
+	switch == prize_door
+})
+mean(switch)
+```
+
+# Assessment
+
+Two teams, say the Cavs and the Warriors, are playing a seven game championship series. The first to win four games wins the series. The teams are equally good, so they each have a 50-50 chance of winning each game. If the Cavs lose the first game, what is the probability that they win the series?
+Assign the number of remaining games to the variable n. Assign a variable outcomes as a vector of possible outcomes in a single game, where 0 indicates a loss and 1 indicates a win for the Cavs. Assign a variable l to a list of all possible outcomes in all remaining games. Use the rep function to create a list of n games, where each game consists of list(outcomes). Use the expand.grid function to create a data frame containing all the combinations of possible outcomes of the remaining games. Use the rowSums function to identify which combinations of game outcomes result in the Cavs winning the number of games necessary to win the series. Use the mean function to calculate the proportion of outcomes that result in the Cavs winning the series and print your answer to the console.
+
+```{r}
+n <- 6
+outcomes <- c(0, 1)
+l <- rep(list(outcomes),n)
+possibilities <- expand.grid(l)
+results <- rowSums(possibilities) >= 4
+mean(results)
+```
+
+Confirm the results of the previous question with a Monte Carlo simulation to estimate the probability of the Cavs winning the series after losing the first game.
+
+```{r}
+B <- 10000
+set.seed(1)
+results <- replicate(B, {
+  simulated_games <- sample(c(0,1), 6, replace = TRUE, prob = c(0.5, 0.5))
+  sum(simulated_games) >= 4
+})
+mean(results)
+```
+
+Two teams, A and B, are playing a seven series game series. Team A is better than team B and has a p > 0.5 chance of winning each game. Use the function sapply to compute the probability, call it Pr of winning for p <- seq(0.5, 0.95, 0.025). Then plot the result plot(p, Pr)
+
+```{r}
+p <- seq(0.5, 0.95, 0.025)
+prob_win <- function(p){
+  B <- 10000
+  result <- replicate(B, {
+    b_win <- sample(c(1,0), 7, replace = TRUE, prob = c(1-p, p))
+    sum(b_win)>=4
+    })
+  mean(result)
+}
+prob <- sapply(p, prob_win)
+plot(p, prob)
+```
+
+Repeat the previous exercise, but now keep the probability that team  wins fixed at p <- 0.75 and compute the probability for different series lengths. For example, wins in best of 1 game, 3 games, 5 games, and so on through a series that lasts 25 games. Use the seq function to generate a list of odd numbers ranging from 1 to 25. Use the function sapply to compute the probability, call it Pr, of winning during series of different lengths. Then plot the result plot(N, Pr)
+
+```{r}
+prob_win <- function(N, p=0.75){
+      B <- 10000
+      result <- replicate(B, {
+        b_win <- sample(c(1,0), N, replace = TRUE, prob = c(1-p, p))
+        sum(b_win)>=(N+1)/2
+        })
+      mean(result)
+}
+N <- seq(1, 25, 2)
+prob <- sapply(N, prob_win)
+plot(N, prob)
+```
+
+# Unit Assessment
+
+## Question 1: Olympic running
+
+In the 200m dash finals in the Olympics, 8 runners compete for 3 medals (order matters). In the 2012 Olympics, 3 of the 8 runners were from Jamaica and the other 5 were from different countries. The three medals were all won by Jamaica (Usain Bolt, Yohan Blake, and Warren Weir). Use the information above to help you answer the following four questions.
+
+How many different ways can the 3 medals be distributed across 8 runners?
+
+```{r}
+nrow(data.frame(permutations(8,3)))
+```
+
+How many different ways can the three medals be distributed among the 3 runners from Jamaica?
+
+```{r}
+nrow(data.frame(permutations(3,3)))
+```
+
+What is the probability that all 3 medals are won by Jamaica?
+
+```{r}
+3/8
+```
+
+What is the probability that all 3 medals are won by Jamaica?
+
+```{r}
+all <- permutations(8,3)
+jamaica <- permutations(3,3)
+nrow(jamaica)/nrow(all)
+```
+
+Run a Monte Carlo simulation on this vector representing the countries of the 8 runners in this race. For each iteration of the Monte Carlo simulation, within a replicate() loop, select 3 runners representing the 3 medalists and check whether they are all from Jamaica. Repeat this simulation 10,000 times. Set the seed to 1 before running the loop. Calculate the probability that all the runners are from Jamaica.
+
+```{r}
+runners <- c("Jamaica", "Jamaica", "Jamaica", "USA", "Ecuador", "Netherlands", "France", "South Africa")
+B <- 10000
+set.seed(1)
+jamaica <- replicate(B, {
+  winners <- sample(runners, 3)
+  (winners[1] %in% "Jamaica" & winners[2] %in% "Jamaica" & winners[3] %in% "Jamaica")
+})
+mean(jamaica)
+```
+
+## Question 2: Restaurant management
+
+Use the information below to answer the following five questions. A restaurant manager wants to advertise that his lunch special offers enough choices to eat different meals every day of the year. He doesn't think his current special actually allows that number of choices, but wants to change his special if needed to allow at least 365 choices. A meal at the restaurant includes 1 entree, 2 sides, and 1 drink. He currently offers a choice of 1 entree from a list of 6 options, a choice of 2 different sides from a list of 6 options, and a choice of 1 drink from a list of 2 options. How many meal combinations are possible with the current menu?
+
+```{r}
+entree <- nrow(combinations(6,1))
+sides <- nrow(combinations(6,2))
+drinks <- nrow(combinations(2,1))
+entree*sides*drinks
+```
+
+The manager has one additional drink he could add to the special. How many combinations are possible if he expands his original special to 3 drink options?
+
+```{r}
+entree <- nrow(combinations(6,1))
+sides <- nrow(combinations(6,2))
+drinks <- nrow(combinations(3,1))
+entree*sides*drinks
+```
+
+The manager decides to add the third drink but needs to expand the number of options. The manager would prefer not to change his menu further and wants to know if he can meet his goal by letting customers choose more sides. How many meal combinations are there if customers can choose from 6 entrees, 3 drinks, and select 3 sides from the current 6 options?
+
+```{r}
+entree <- nrow(combinations(6,1))
+sides <- nrow(combinations(6,3))
+drinks <- nrow(combinations(3,1))
+entree*sides*drinks
+```
+
+The manager is concerned that customers may not want 3 sides with their meal. He is willing to increase the number of entree choices instead, but if he adds too many expensive options it could eat into profits. He wants to know how many entree choices he would have to offer in order to meet his goal. Write a function that takes a number of entree choices and returns the number of meal combinations possible given that number of entree options, 3 drink choices, and a selection of 2 sides from 6 options. Use sapply() to apply the function to entree option counts ranging from 1 to 12. What is the minimum number of entree options required in order to generate more than 365 combinations?
+
+```{r}
+sides <- nrow(combinations(6,2))
+drinks <- nrow(combinations(3,1))
+n <- 1:12
+options <- function(n){
+  n*sides*drinks
+}
+opt <- sapply(n, options)
+min(which(opt >= 365))
+```
+
+The manager isn't sure he can afford to put that many entree choices on the lunch menu and thinks it would be cheaper for him to expand the number of sides. He wants to know how many sides he would have to offer to meet his goal of at least 365 combinations. Write a function that takes a number of side choices and returns the number of meal combinations possible given 6 entree choices, 3 drink choices, and a selection of 2 sides from the specified number of side choices. Use sapply() to apply the function to side counts ranging from 2 to 12. What is the minimum number of side options required in order to generate more than 365 combinations?
+
+```{r}
+entree <- nrow(combinations(6,1))
+drinks <- nrow(combinations(3,1))
+n <- 2:12
+options <- function(n){
+  drinks*entree*nrow(combinations(n, 2))
+}
+opt <- sapply(n, options)
+min(which(opt >= 365))
+```
+
+## Questions 3 and 4: Esophageal cancer and alcohol/tobacco use, part 1
+
+Case-control studies help determine whether certain exposures are associated with outcomes such as developing cancer. The built-in dataset esoph contains data from a case-control study in France comparing people with esophageal cancer (cases, counted in ncases) to people without esophageal cancer (controls, counted in ncontrols) that are carefully matched on a variety of demographic and medical characteristics. The study compares alcohol intake in grams per day (alcgp) and tobacco intake in grams per day (tobgp) across cases and controls grouped by age range (agegp). The dataset is available in base R and can be called with the variable name esoph. The following three parts have you explore some basic characteristics of the dataset. Each row contains one group of the experiment. Each group has a different combination of age, alcohol consumption, and tobacco consumption. The number of cancer cases and number of controls (individuals without cancer) are reported for each group.
+
+```{r}
+data("esoph")
+head(esoph)
+```
+
+```{r}
+nrow(esoph)
+```
+
+How many cases are there?
+
+```{r}
+all_cases <- sum(esoph$ncases)
+all_cases
+```
+
+How many controls are there?
+
+```{r}
+all_controls <- sum(esoph$ncontrols)
+all_controls
+```
+
+The following four parts ask you to explore some probabilities within this dataset related to alcohol and tobacco consumption. What is the probability that a subject in the highest alcohol consumption group is a cancer case?
+
+```{r}
+summary(esoph)
+```
+
+```{r}
+library(tidyverse)
+library(gtools)
+esoph %>% filter(alcgp == "120+") %>%
+  summarize(sum_cases=sum(ncases), tot=sum(ncontrols) + sum(ncases), probability=sum_cases/tot)
+```
+
+What is the probability that a subject in the lowest alcohol consumption group is a cancer case?
+
+```{r}
+esoph %>% filter(alcgp == "0-39g/day") %>%
+  summarize(sum_cases=sum(ncases), tot=sum(ncontrols) + sum(ncases), probability=sum_cases/tot, 3)
+```
+
+Given that a person is a case, what is the probability that they smoke 10g or more a day?
+
+```{r}
+total_cases <- sum(esoph$ncases)
+group <- esoph %>% filter(tobgp != "0-9g/day") %>% summarize(sum(ncases)) %>% unlist()
+group/total_cases
+```
+
+Given that a person is a control, what is the probability that they smoke 10g or more a day?
+
+```{r}
+group <- esoph %>% filter(tobgp != "0-9g/day") %>% summarize(sum(ncontrols)) %>% unlist()
+group/all_controls
+```
+
+For cases, what is the probability of being in the highest alcohol group?
+
+```{r}
+group <- esoph %>% filter(alcgp == "120+") %>% summarize(sum(ncases)) %>% unlist()
+group/all_cases
+```
+
+For cases, what is the probability of being in the highest tobacco group?
+
+```{r}
+group <- esoph %>% filter(tobgp == "30+") %>% summarize(sum(ncases)) %>% unlist()
+group/all_cases
+```
+
+For cases, what is the probability of being in the highest alcohol group and the highest tobacco group?
+
+```{r}
+group <- esoph %>% filter(tobgp == "30+" & alcgp == "120+") %>% summarize(sum(ncases)) %>% unlist()
+group/all_cases
+```
+
+For cases, what is the probability of being in the highest alcohol group or the highest tobacco group?
+
+```{r}
+group <- esoph %>% filter(tobgp == "30+" | alcgp == "120+") %>% summarize(sum(ncases)) %>% unlist()
+group/all_cases
+```
+
+For controls, what is the probability of being in the highest alcohol group?
+
+```{r}
+group <- esoph %>% filter(alcgp == "120+") %>% summarize(sum(ncontrols)) %>% unlist()
+group/all_controls
+```
+
+How many times more likely are cases than controls to be in the highest alcohol group?
+
+```{r}
+esoph %>% filter(alcgp == "120+") %>%
+  summarize(contr_sum = sum(ncontrols), case_sum = sum(ncases),
+            co_prob = contr_sum/all_controls, ca_prob = case_sum/all_cases,
+            ratio = ca_prob/co_prob)
+```
+
+For controls, what is the probability of being in the highest tobacco group?
+
+```{r}
+group <- esoph %>% filter(tobgp == "30+") %>% summarize(sum(ncontrols)) %>% unlist()
+group/all_controls
+```
+
+For controls, what is the probability of being in the highest alcohol group and the highest tobacco group?
+
+```{r}
+group <- esoph %>% filter(tobgp == "30+" & alcgp == "120+") %>% summarize(sum(ncontrols)) %>% unlist()
+group/all_controls
+```
+
+For controls, what is the probability of being in the highest alcohol group or the highest tobacco group?
+
+```{r}
+group <- esoph %>% filter(tobgp == "30+" | alcgp == "120+") %>% summarize(sum(ncontrols)) %>% unlist()
+group/all_controls
+```
+
+How many times more likely are cases than controls to be in the highest alcohol group or the highest tobacco group?
+
+```{r}
+esoph %>% filter(tobgp == "30+" | alcgp == "120+") %>%
+  summarize(contr_sum = sum(ncontrols), case_sum = sum(ncases),
+            co_prob = contr_sum/all_controls, ca_prob = case_sum/all_cases,
+            ratio = ca_prob/co_prob)
+```
+
